@@ -1,0 +1,41 @@
+main: org.shellbug.omgzombies.MainClass
+version: 1.1
+name: OMGZombies
+
+commands:
+  omgz:
+    description: Start the zombies' invasion
+    usage: |
+      Use /help omgz [subcommand] for more information
+      /omgz start - Start the invasion of the zombies
+      /omgz stop - Stop the invasion of the zombies
+      /omgz frequency - Set the frequency of spawn in seconds
+      /omgz reward - Set the reward
+      /omgz allowfly - Allow/disable fly mode
+      /omgz royals - Allow/disable spawn King and Prince
+      /omgz count - Returns the number of zombies killed
+      /omgz version - Print the plugin version
+  omgz start:
+    description: Start the zombies' invasion
+    usage: /omgz start
+  omgz stop:
+    description: Stop the zombies' invasion
+    usage: /omgz stop
+  omgz frequency:
+    description: Set the frequency of spawn in seconds
+    usage: /omgz frequency [amount]
+  omgz reward:
+    description: Set the reward to amount
+    usage: /omgz reward [amount]
+  omgz allowfly:
+    description: Allow/disable fly mode
+    usage: /omgz allowfly [true/false]
+  omgz royals:
+    description: Allow/disable fly mode
+    usage: /omgz royals [true/false]
+  omgz count:
+    description: Returns the number of zombies killed
+    usage: /omgz count
+  omgz version:
+    description: Print the plugin version
+    usage: /omgz version
