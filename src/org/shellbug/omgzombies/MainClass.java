@@ -2,13 +2,18 @@ package org.shellbug.omgzombies;
 
 import java.util.HashMap;
 import java.util.logging.Logger;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.java.JavaPlugin;
 
+
 public class MainClass extends JavaPlugin {
 
-//	public HashMap<String, Boolean> bInvasion = new HashMap<String, Boolean>();
+	final boolean DEBUG = false;
 	public Boolean bInvasion = false;
+	public Boolean bEssentials = false;
+	public Boolean bMultiverse = false;
+	public String sServerName;
 	public HashMap<String, Boolean> bLand = new HashMap<String, Boolean>();
 	public HashMap<String, Integer> iZombieCount = new HashMap<String, Integer>();
 
@@ -18,24 +23,44 @@ public class MainClass extends JavaPlugin {
 		PluginDescriptionFile pdfFile = getDescription();
 		logger = getLogger();
 
-		if (getServer().getPluginManager().isPluginEnabled("Essentials")) {
-			logger.warning(pdfFile.getName() + " you need Essentials plugin");
-			onDisable();
+		Plugin EssentialsPlugin = this.getServer().getPluginManager().getPlugin("Essentials");
+		if (EssentialsPlugin == null) {
+			bEssentials = false;
+			// getServer().getPluginManager().disablePlugin(this);
+			logger.warning(pdfFile.getName() + " V." + pdfFile.getVersion() + ": You need Essentials plugin for a total experience");
+			// return;
+		} else {
+			bEssentials = true;
 		}
-		if (getServer().getPluginManager().isPluginEnabled("MultiverseCore")) {
-			logger.warning(pdfFile.getName() + " you need MultiverseCore plugin");
-			onDisable();
+
+		Plugin MultiverseCorePlugin = this.getServer().getPluginManager().getPlugin("Multiverse-Core");
+		if (MultiverseCorePlugin == null) {
+			bMultiverse = false;
+			// getServer().getPluginManager().disablePlugin(this);
+			logger.warning(pdfFile.getName() + " V." + pdfFile.getVersion() + ": You need Multiverse-Core plugin for a total experience");
+			// return;
+		} else {
+			bMultiverse = true;
 		}
 
 		registerConfig();
 
-		new ListenerClass(this);
+		if (bEssentials) {
+			new ListenerClass(this);
+		} else {
+			new ListenerClassNoPlugin(this);
+		}
 		// new SpawnZombies( this );
 
 		getCommand("omgz").setExecutor(new CommandsClass(this));
 
-		logger.info(pdfFile.getName() + " has been enabled (V." + pdfFile.getVersion() + ")");
-		
+		logger.info(pdfFile.getName() + " V." + pdfFile.getVersion() + ": has been enabled!");
+
+		// Check for updates
+		// if (getConfig().getBoolean("global-settings.update-notification",
+		// false)) {
+		// VersionChecker.checkForUpdates(this, null);
+		// }
 	}
 
 	private void registerConfig() {
@@ -46,8 +71,8 @@ public class MainClass extends JavaPlugin {
 	public void onDisable() {
 		PluginDescriptionFile pdfFile = getDescription();
 		Logger logger = getLogger();
-
-		logger.info(pdfFile.getName() + " has been disabled (V." + pdfFile.getVersion() + ")");
+		// VersionChecker.shutdown();
+		logger.info(pdfFile.getName() + " V." + pdfFile.getVersion() + ": has been disabled!");
 	}
 
 }

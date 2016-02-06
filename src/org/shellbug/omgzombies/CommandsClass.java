@@ -3,7 +3,6 @@ package org.shellbug.omgzombies;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Logger;
-
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -24,6 +23,7 @@ import org.bukkit.plugin.PluginDescriptionFile;
 
 public class CommandsClass implements CommandExecutor {
 
+	final boolean DEBUG = false;
 	public static int wave;
 	public static int iTaskId;
 	public Random random;
@@ -34,7 +34,10 @@ public class CommandsClass implements CommandExecutor {
 	private Server server;
 	private MainClass mainclass;
 
-	private Boolean bInvasion;
+//	private Boolean bInvasion;
+	private Boolean bEssentials;
+	private Boolean bMultiverse;
+//	private String sServerName;
 	private HashMap<String, Integer> iZombieCount;
 	Logger logger;
 
@@ -42,7 +45,9 @@ public class CommandsClass implements CommandExecutor {
 		logger = plugin.getLogger();
 		random = new Random();
 		mainclass = plugin;
-		bInvasion = plugin.bInvasion;
+//		bInvasion = plugin.bInvasion;
+		bEssentials = plugin.bEssentials;
+		bMultiverse = plugin.bMultiverse;
 		iZombieCount = plugin.iZombieCount;
 	}
 
@@ -69,29 +74,44 @@ public class CommandsClass implements CommandExecutor {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (!bInvasion) {
-					bInvasion = true;
-					Bukkit.broadcastMessage( ChatColor.GREEN + player.getName() + ChatColor.RED + " starts the invasion!");
+				if (!mainclass.bInvasion) {
+					mainclass.bInvasion = true;
+					mainclass.sServerName = player.getWorld().getName();
+					Bukkit.broadcastMessage(
+							ChatColor.GREEN + player.getName() + ChatColor.RED + " starts the invasion!");
 					world.setMonsterSpawnLimit(200);
 					player.getServer().dispatchCommand(server.getConsoleSender(), "gamerule mobGriefing false");
 					player.getServer().dispatchCommand(server.getConsoleSender(), "gamerule doDaylightCycle false");
 					player.getServer().dispatchCommand(server.getConsoleSender(), "time set 13000 " + world.getName());
-					player.getServer().dispatchCommand(server.getConsoleSender(), "mvm set diff hard " + world.getName());
 					player.getServer().dispatchCommand(server.getConsoleSender(), "gamerule doDaylightCycle false");
-					player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify set animals false " + world.getName());
-					player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify set monsters false " + world.getName());
-					player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify add zombie monsters " + world.getName());
+					if (bMultiverse) {
+						player.getServer().dispatchCommand(server.getConsoleSender(), "mvm set diff hard " + world.getName());
+						player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify set animals false " + world.getName());
+						player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify set monsters false " + world.getName());
+						player.getServer().dispatchCommand(server.getConsoleSender(), "mv modify add zombie monsters " + world.getName());
+					}
 					// Se nella config c'e' scritto che è possibile volare
+					if(DEBUG){
+						logger.warning("AllowFly:"+mainclass.getConfig().getBoolean("AllowFly"));
+					}
 					if (mainclass.getConfig().getBoolean("AllowFly")) {
 						for (Player p : Bukkit.getOnlinePlayers()) {
-							p.setAllowFlight(true);
-							p.setFlying(true);
+							if (p.getWorld().getName().compareTo(mainclass.sServerName) == 0) {
+								p.setAllowFlight(true);
+								p.setFlying(true);
+							}
 						}
 					}
 					for (Player p : Bukkit.getOnlinePlayers()) {
-						p.playSound(p.getLocation(), Sound.AMBIENCE_THUNDER, 1, 0);
+						if(DEBUG){
+							logger.warning("Player:"+p.getWorld().getName()+"; sServerName:"+mainclass.sServerName);
+						}
+						if (p.getWorld().getName().compareTo(mainclass.sServerName) == 0) {
+							p.playSound(p.getLocation(), Sound.AMBIENCE_THUNDER, 2f, 2f);
+						}
 					}
 					bRoyals = mainclass.getConfig().getBoolean("Royals");
+
 					vStartTimer();
 				}
 			} else if (args[0].equalsIgnoreCase("stop")) {
@@ -99,24 +119,30 @@ public class CommandsClass implements CommandExecutor {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (bInvasion) { // Se nella configurazione c'e' scritto che è possibile volare
-					if (mainclass.getConfig().getBoolean("AllowFly")) {
-						for (Player p : Bukkit.getOnlinePlayers()) {
-							p.setFlying(false);
-							p.setAllowFlight(false);
+				if (mainclass.bInvasion) { // Se nella configurazione c'e' scritto che è
+									// possibile volare
+					if (bMultiverse) {
+						if (mainclass.getConfig().getBoolean("AllowFly")) {
+							for (Player p : Bukkit.getOnlinePlayers()) {
+								p.setFlying(false);
+								p.setAllowFlight(false);
+							}
 						}
 					}
-					Bukkit.broadcastMessage( ChatColor.AQUA + player.getName() + ChatColor.GREEN + " stops the invasion!");
-					bInvasion = false;
+					Bukkit.broadcastMessage(
+							ChatColor.AQUA + player.getName() + ChatColor.GREEN + " stops the invasion!");
+					mainclass.bInvasion = false;
 					vStopTimer();
 				}
+				return true;
 			} else if (args[0].equalsIgnoreCase("reward")) {
 				player.sendMessage(ChatColor.GREEN + "Reward set at " + mainclass.getConfig().getInt("Reward") + "$");
 			} else if (args[0].equalsIgnoreCase("version")) {
 				player.sendMessage(ChatColor.GREEN + pdfFile.getName() + " V." + pdfFile.getVersion());
 			} else if (args[0].equalsIgnoreCase("count")) {
 				if (iZombieCount.containsKey(player.getName())) {
-					player.sendMessage(ChatColor.GREEN + "You kill " + iZombieCount.get(player.getName()) + " zombies!");
+					player.sendMessage(
+							ChatColor.GREEN + "You kill " + iZombieCount.get(player.getName()) + " zombies!");
 				}
 			} else {
 				return false;
@@ -128,32 +154,41 @@ public class CommandsClass implements CommandExecutor {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (args[1].matches("[0-9]+")) {
-					if (Integer.parseInt(args[1]) <= 10000) {
-						mainclass.getConfig().set("Reward", Integer.parseInt(args[1]));
-						mainclass.saveConfig();
-						Bukkit.broadcastMessage(ChatColor.GREEN + "Reward set at " + Integer.parseInt(args[1]) + "$");
+				if (bEssentials) {
+					if (args[1].matches("[0-9]+")) {
+						if (Integer.parseInt(args[1]) <= 10000) {
+							mainclass.getConfig().set("Reward", Integer.parseInt(args[1]));
+							mainclass.saveConfig();
+							Bukkit.broadcastMessage(
+									ChatColor.GREEN + "Reward set at " + Integer.parseInt(args[1]) + "$");
+						} else {
+							player.sendMessage(ChatColor.RED + "Do you really want this reward? (from 0 to 10000)");
+						}
+						return true;
 					} else {
-						player.sendMessage(ChatColor.RED + "Do you really want this reward? (from 0 to 10000)");
+						return false;
 					}
-					return true;
-				} else {
-					return false;
 				}
+				return true;
 			} else if (args[0].equalsIgnoreCase("frequency")) {
 				if (!(player.isOp())) {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (bInvasion) {
+				if (mainclass.bInvasion) {
 					player.sendMessage(ChatColor.RED + "Stop the invasion before type this command!");
 					return true;
 				}
 				if (args[1].matches("[0-9]+")) {
-					if ((Integer.parseInt(args[1]) > 0) && (Integer.parseInt(args[1]) <= 50)) {
+					if (Integer.parseInt(args[1]) == 1) {
+						mainclass.getConfig().set("Frequency", 1);
+						mainclass.saveConfig();
+						Bukkit.broadcastMessage(ChatColor.GREEN + "Spawn frequency set at 1 second");
+					} else if ((Integer.parseInt(args[1]) > 1) && (Integer.parseInt(args[1]) <= 50)) {
 						mainclass.getConfig().set("Frequency", Integer.parseInt(args[1]));
 						mainclass.saveConfig();
-						Bukkit.broadcastMessage(ChatColor.GREEN + "Spawn frequency set at " + Integer.parseInt(args[1]) + " seconds");
+						Bukkit.broadcastMessage(
+								ChatColor.GREEN + "Spawn frequency set at " + Integer.parseInt(args[1]) + " seconds");
 					} else {
 						player.sendMessage(ChatColor.RED + "Do you really want this Spawn Frequency? (from 1 to 50)");
 					}
@@ -166,27 +201,30 @@ public class CommandsClass implements CommandExecutor {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (bInvasion) {
+				if (mainclass.bInvasion) {
 					player.sendMessage(ChatColor.RED + "Stop the invasion before type this command!");
 					return true;
 				}
-				if (args[1].equalsIgnoreCase("true")) {
-					mainclass.getConfig().set("AllowFly", true);
-					mainclass.saveConfig();
-					player.sendMessage(ChatColor.RED + "Fly allowed.");
-				} else if (args[1].equalsIgnoreCase("false")) {
-					mainclass.getConfig().set("AllowFly", false);
-					mainclass.saveConfig();
-					player.sendMessage(ChatColor.GREEN + "Fly disabled.");
-				} else {
-					return false;
+				if (bMultiverse) {
+					if (args[1].equalsIgnoreCase("true")) {
+						mainclass.getConfig().set("AllowFly", true);
+						mainclass.saveConfig();
+						player.sendMessage(ChatColor.RED + "Fly allowed.");
+					} else if (args[1].equalsIgnoreCase("false")) {
+						mainclass.getConfig().set("AllowFly", false);
+						mainclass.saveConfig();
+						player.sendMessage(ChatColor.GREEN + "Fly disabled.");
+					} else {
+						return false;
+					}
 				}
+				return true;
 			} else if (args[0].equalsIgnoreCase("Royals")) {
 				if (!(player.isOp())) {
 					player.sendMessage(ChatColor.RED + "You must be a Admin to use this command!");
 					return true;
 				}
-				if (bInvasion) {
+				if (mainclass.bInvasion) {
 					player.sendMessage(ChatColor.RED + "Stop the invasion before type this command!");
 					return true;
 				}
@@ -217,7 +255,7 @@ public class CommandsClass implements CommandExecutor {
 
 		iTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask((Plugin) mainclass, new Runnable() {
 			public void run() {
-				if (!bInvasion) {
+				if (!mainclass.bInvasion) {
 					// logger.warning("t4 cancelTask 1");
 					Bukkit.getScheduler().cancelTask(iTaskId);
 					// logger.warning("t4 cancelTask 2");
@@ -227,6 +265,9 @@ public class CommandsClass implements CommandExecutor {
 				for (Player p : Bukkit.getOnlinePlayers()) {
 					// logger.warning("t4 " + p.getName());
 					world = (World) p.getWorld();
+					if (p.getWorld().getName().compareTo(mainclass.sServerName) != 0) {
+						continue;
+					}
 					Location location = p.getLocation();
 					switch (wave) {
 					case 1:
@@ -238,9 +279,8 @@ public class CommandsClass implements CommandExecutor {
 					case 3:
 						location.add(-10, 0, 0);
 						break;
-					case 4:
+					default:
 						location.add(0, 0, -10);
-						wave = 0;
 						break;
 					}
 					location.setY(world.getHighestBlockYAt(location));
@@ -302,6 +342,11 @@ public class CommandsClass implements CommandExecutor {
 						}
 					}
 				}
+				if(wave>=4)
+				{
+					wave = 0;
+				}
+
 			}
 		}, 100L, period);
 	}
